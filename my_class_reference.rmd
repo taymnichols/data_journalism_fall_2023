@@ -30,6 +30,11 @@ The command to set a working directory is setwd(). For example:
 ```{r}
 setwd("~/code/data_journalism_2023_spring")
 ```
+### What Is The Tidyverse?
+###library(tidyverse)
+```
+
+The library function loads an R library such as the tidyverse, providing access to the verbs and functions that library contains. You have to load a library before you can use its functions.
 
 ### How to install and load the tidyverse
 
@@ -53,5 +58,16 @@ dataframe %>%
   group_by(some_column) %>% 
   summarize(count = n())
 ```
+### Group and count
 
+The keyboard shortcut for this is cmd-shift-m on the Mac and ctrl-shift-m on Windows. Don't like that character? R now has a new one that does the same thing: `|>`.
+
+Group by is a great way to see if you have bad data because it shows you each group (e.g. monday, tuesday, wednesday, blue)
+
+Summarise does all the math stuff - you group by and use summarize to count, add, subtract, multple, etc., "n" does the math - counts the number of rows, 
+```{r}
+umd_courses |>
+  group_by(term) |>
+  summarise(
+    count_classes = n()
 ### Glossary of Examples
