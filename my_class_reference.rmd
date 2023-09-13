@@ -64,10 +64,15 @@ The keyboard shortcut for this is cmd-shift-m on the Mac and ctrl-shift-m on Win
 
 Group by is a great way to see if you have bad data because it shows you each group (e.g. monday, tuesday, wednesday, blue)
 
-Summarise does all the math stuff - you group by and use summarize to count, add, subtract, multple, etc., "n" does the math - counts the number of rows, 
+Summarise does all the math stuff - you group by and use summarize to count, add, subtract, multple, etc., "n" does the math - counts the number of rows
 ```{r}
 umd_courses |>
   group_by(term) |>
   summarise(
     count_classes = n()
 ### Glossary of Examples
+
+###**Task** Run the codeblock below to load the data, which is contained in an RDS file.
+
+umd_courses <- read_rds("lab_01.rds")
+

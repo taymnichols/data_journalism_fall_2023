@@ -1,0 +1,103 @@
+---
+title: "lab_01"
+author: "Derek Willis"
+date: "2023-01-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Turn off scientific notation
+options(scipen=999)
+```
+
+## About this lab
+
+To complete this lab, you need to: \* run existing code as directed (look for **Task**). \* modify existing code as directed (look for **Task**). \* write code in empty codeblocks provided to answer questions included (look for **Q**). \* write out the answer in the form of a complete sentence in the space given (look for **A**). When you are finished, commit changes and push to your personal GitHub repo, then submit the URL to this document on ELMS.
+
+Remember to add any new verbs or concepts to your class reference notebook!
+
+## Load libraries and establish settings
+
+**Task** Run the codeblock below to load the Tidyverse. To run the codeblock, hit the little green play button in the upper right corner of the gray area (the codeblock) below.
+
+```{r}
+# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
+# install.packages('tidyverse')
+library(tidyverse)
+```
+
+## Load Data
+
+We're going to load the UMD courses data.
+
+**Task** Run the codeblock below to load the data, which is contained in an RDS file.
+
+```{r}
+umd_courses <- read_rds("lab_01.rds")
+```
+
+## Answer questions
+
+**Q1** Which department has the highest mean (average) number of seats for its classes? You need to show the department with the highest average first. Which one is the most surprising/interesting to you?
+**A1**
+Engineering, Cooperative Education has the highest average number of seats for its classes. I was surprised by the "University Courses" department because that is a very vague department name that sounds like a catch-all department. I'm also surprised that many of these departments with a high number of seats wouldn't strike me as classes that would be very large or very popular. I would expect popular departrments such as business or psychology, which seem like they would be easier to teach large groups for and would offer a lot of GURs, to be the departments with the highest average number of seats available. 
+
+```{r}
+umd_courses |> 
+  group_by(department) |>
+  summarise (
+    total_seats = sum(seats),
+    mean_seats = mean(seats)) |>
+  arrange(desc(mean_seats))
+```
+
+**Q2** Find out the greatest number of times any individual class has been offered in our dataset. Your code must show the greatest number of classes first. 
+**A2**
+Doctoral Dissertation Research has been offered 1,303 times, based on the university ID for each course. However, this doesn't seem super helpful because I'm assuming this is a class that's listed many times because individual students enroll in it maybe and I would likely throw out these classes because I don't think that's what the question is getting at. There are a large number of classes that have been offered 22 times, which I think more accurately answers what this question is trying to get iat. 
+```{r}
+umd_courses |>
+  group_by(title) |>
+  summarise(
+    count_id = n()
+  ) |>
+  arrange(desc(count_id))
+```
+
+```{r}
+umd_courses |>
+  group_by(id, title) |>
+  summarise(
+    count_id = n()
+  ) |>
+  arrange(desc(count_id))
+```
+
+**Q3** Count the number of courses for each instructor and department. Which instructor has taught the most? **A3**
+Keith Yearwood from the Geographical Sciences department has taught the most, based on the data we have available. However, this may not be accurate because there are many courses with no instructor listed.
+
+```{r}
+umd_courses |>
+  group_by(department, instructors) |>
+  summarize(count_classes = n()) |>
+  arrange(desc(count_classes))
+```
+
+**Q4** Given the results for Q3, what would have made it easier to find the answer? You don't have to know *how* to accomplish this; I want you to describe in words what would make the answer easier to see. How confident are you that the answer you got is the right one, and why? **A4**
+It would be more accurate and easier to find the answer if the college had been consistent with updating the instructor teaching the class in the system. Because there are so many classes with no instructor listed, we can't be sure our answer is correct.
+
+**Q5** Take one of the questions you listed in the final question of the pre_lab and try to answer it here in code. If you don't know how to fully answer it, write what code you can and describe in words what else you would need to do. If you got an answer, is it interesting? **A5**
+ Which classes saw the biggest drop in availability over time?
+ 
+I would like to compare the change in number of seats available per class each year as well as compare from the first term to the most recent term. I would probably try and accomplish this by giving each term its own column, then creating a column in between each term column showing the change from term to term OR adding up the seats for each year then calculating the difference YoY instead of by term. This would probably be a pain to do manually but I'm not sure how to do it more easily than that. I think you can probably accomplish some of it by using a function in Google Sheets that says "if term contains 2018, sum total seats" or something along those lines, then finding the difference between each year and sorting from there. I tried to figure it out in R but I think you need to make a data frame maybe which I don't know how to do yet.
+ 
+
+```{r}
+umd_courses |>
+  group_by(id, title,term) |>
+  summarise(
+    total_seats= sum(seats)
+    ) |>
+  arrange(desc(total_seats))
+
+```
