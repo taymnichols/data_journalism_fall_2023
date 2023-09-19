@@ -76,3 +76,37 @@ umd_courses |>
 
 umd_courses <- read_rds("lab_01.rds")
 
+
+###Filter and Select
+journalism_courses <- umd_courses |> filter(columname == "criteria")
+The following filters for terms after 2023 (no quotes with numbers)
+courses_2023 <- umd_courses |> filter(term > 202300)
+
+head(courses_2023) 
+
+Filter that department or whatever subset of data (data frame), then run other things on it (e.g. summarise etc)
+
+Select shows you specific columns, gets rid of other columns (basically hides them)
+
+can do select(courses, instructor) or can do select(-syllabus_count) to hide everything except syllabus count, can also select all columns that start with these three characters
+
+To COMBINE filters: 
+theatre_seats_15 <- umd_courses |> filter(department == "Theatre") |> filter(seats >= 15)
+
+nrow(theatre_seats_15) OR can combine:
+and_theatre_seats_15 <- umd_courses |> filter(department == "Theatre", seats >= 15) 
+Comma does both filters together, | means Either theater OR courses with 15 seats
+doing != does "department does not equal theater"
+nrow(and_theatre_seats_15)
+
+### Task 7: Filter on partial match
+umd_courses |>
+  filter(str_detect(title, "Shakespeare")) brings back any title that has "shakespeare" in it
+  The latest version of the tidyverse also has a function called `str_like` which uses the wildcard search operator % to do partial matching.
+  
+  ### MUTATE
+convert date column with characters into real dates
+maryland_expenses <- maryland_expenses |> mutate(expenditure_date=mdy(expenditure_date))
+
+head(maryland_expenses) 
+need the <- to make the change permanent (make this change then save it)
