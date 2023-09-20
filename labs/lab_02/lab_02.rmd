@@ -1,0 +1,153 @@
+---
+title: "lab_02"
+author: "derek willis"
+date: "2023-09-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
+# install.packages('tidyverse')
+library(tidyverse)
+library(lubridate)
+```
+
+## Load Data
+
+Let's keep working with the UMD courses and Maryland campaign expense data we used in the pre_lab.
+
+```{r}
+umd_courses <- read_rds("data/umd_courses.rds")
+maryland_expenses <- read_csv("data/maryland_expenses.csv")
+```
+
+## Answer questions
+
+**Q1.** How many departments have offered the courses with "Climate" in the title and at least one seat? Which department has offered the most?
+**A1.**
+A total of 26 different departments have offered courses with "Climate" in the title with at least one seat. The atmospheric and oceanic science department has offered the most classes.
+
+NOTE: I kind of feel like I cheated because I couldn't figure out how to get it to give me those answers with code, but I created a new data frame and clicked to sort.
+
+
+```{r}
+umd_courses |>
+  filter(str_detect(title, "Climate"))
+climate_and_one_seat <- umd_courses |> filter(str_detect(title,"Climate") & seats >= 1)
+
+depts_climate <- climate_and_one_seat |> group_by(department) |>
+  summarise(
+    count_classes = n())
+
+```
+
+**Q2.** Of the departments listed in A2, which one is the most interesting to you, and why?
+**A2.**
+Art history and archaeology, because it seems like a strange pairing, but also I would be interested to take classes on climate and art history or archaeology - I was a bit surprised to see them there and that they offered more classes on climate than the journalism department. Also the journalism department because that's always the most interesting for me.
+
+
+**Q3** Which departments have the most courses in the Fall 2023 term? And which departments in that term have at least one syllabus posted? How are the top five departments different in each result?
+
+**A3.**
+The following departments have the most courses available for fall term 2023:
+Business and Management: 164
+School of Music: 137
+English: 120
+Teaching and Learning, Policy and Leadership: 116
+Information Studies: 115
+
+A total of 125 departments have at least one syllabus.
+
+Of those departments, the ones with the most classes available are:
+Business and Management: 82
+Economics: 50
+School of Music: 48
+Biological Sciences Program: 41
+Information Studies: 41
+
+Business and management is still the largest dept by classes available, but economics took second place over the school of music. Biological sciences also overtook information studies.
+
+```{r}
+fall_courses_2023 <- umd_courses |> filter(term == 202308)
+
+depts_fall2023 <- fall_courses_2023 |> group_by(department) |>
+   summarise(
+     count_classes = n())
+
+fall_courses_w_syllabus_2023 <- umd_courses |> filter(term == 202308 & syllabus_count >= 1)
+depts_w_syllabus_fall2023 <- fall_courses_w_syllabus_2023 |> group_by(department) |>
+   summarise(
+     count_classes = n())
+```
+
+**Q4.** Using the Maryland campaign expenses data, change the datatype of the expenditure_date column so that it is a date and not a chr, saving the result as the same dataframe. Then create a new column for the month based on expenditure_date. Then write code that shows total amount spent each month by Wes Moore's committee (you'll need to search the data to find the exact name). Write a sentence describing the pattern of spending over time.
+**A4.**
+
+The Wes Moore for Maryland Committee spent significantly more money over time, going from expenditures of $100,000-$200,000 per month in the summer of 2021 to millions of dollars per month in later 2022, likely as they neared election day.
+
+```{r}
+maryland_expenses <- read_csv("data/maryland_expenses.csv")
+
+maryland_expenses <- maryland_expenses |> mutate(expenditure_date=mdy(expenditure_date))
+
+maryland_expenses <-maryland_expenses |>
+  mutate(month = floor_date(expenditure_date, "month")) |>
+  group_by(month)
+
+wes_moore_expenditures <- maryland_expenses |> filter(committee_name == "Moore  Wes For Maryland")
+
+wes_moore_expenditures <- wes_moore_expenditures |> mutate(total_spent =sum(amount))
+
+
+```
+
+**Q5.** Using case_when(), create a column in the Maryland expenses data called `spending_location` indicating whether each record spent money in Maryland or outside Maryland. For records that are in Maryland, make the new column's value "In-state" and for the others, make it "Out of state". Then write code that shows the total amount of money spent in each category and describe the results. You can do this in one statement or break it up into two statements (saving the new column to your dataframe).
+**A5**
+The results say that the campaigns didn't spend any money out of state, but I don't think that's true.
+
+```{r}
+maryland_expenses_with_spending_location <- maryland_expenses |>
+  mutate(
+    spending_location = case_when(
+        str_detect(address, " Maryland ") ~ "MD",
+        .default = "Out of state"
+      )
+  )
+
+maryland_expenses_with_spending_location |> group_by(spending_location) |>
+  summarise(
+    sum(amount)
+    )
+```
+
+
+**Q6.** Choose your own adventure: using either the UMD courses or campaign expenses data, ask and answer a question that is different than the previous ones. You can use one of the ones you provided in the pre_lab.
+**A6.**
+
+What expense category received the most funding in the maryland expenses data?
+
+The top expense categories are:
+Media: $30256356.74
+
+Transfers Out to Other Maryland Treasurers: $26346568.67
+
+Salaries and Other compensation: $17116848.62
+
+Printing and Campaign Materials: $13063620.14
+
+Direct Mailing by Mail House (R): $11450844.52
+```{r}
+spending_by_category <- maryland_expenses |> 
+  group_by(expense_category) |> 
+  summarise (
+    sum(amount))
+```
