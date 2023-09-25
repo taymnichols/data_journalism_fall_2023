@@ -110,3 +110,10 @@ maryland_expenses <- maryland_expenses |> mutate(expenditure_date=mdy(expenditur
 
 head(maryland_expenses) 
 need the <- to make the change permanent (make this change then save it)
+
+### Order of operations
+1. Data frame
+2. Filter
+Group
+Summarize
+arrange
