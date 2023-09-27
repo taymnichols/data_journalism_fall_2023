@@ -1,0 +1,140 @@
+---
+title: "lab_03"
+author: "Derek Willis"
+date: "2023-09-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse
+library(tidyverse)
+
+# Load janitor
+library(janitor)
+```
+
+## TASK: Load data and clean up the column names
+
+Load the two datasets we worked with in the pre_lab: the Maryland payments to vendors and Maryland grants and loans and, using janitor, change the columns so that they are lower-cased and any spaces are replaced with underscores.
+
+```{r}
+# Load in the Maryland state agency payments data, making sure that it correctly sets the datatypes using all of the rows
+
+payments <- read_csv("data/State_of_Maryland_Payments_Data__FY2008_to_FY2024.csv", guess_max=373564)
+
+# Load in the Maryland grants and loan data
+grants_loans <- read_csv("data/State_of_Maryland_Grant_and_Loan_Data__FY2009_to_FY2022.csv")
+
+```
+
+```{r}
+cleaned_payments <- payments |> clean_names()
+cleaned_grantsloans <- grants_loans |> clean_names()
+```
+
+## Answer questions
+
+Q1: You want to know how much money state agencies have paid to the Prince George's County School system. To do that, that you'll need to find all of the variations of how the school system might be listed. 
+
+Write code to find rows where the vendor name contains the county's school system, starting with a broad search and then narrowing it down. 
+
+When you have found as many as possible, save the result to a new dataframe called `pg_schools`. 
+
+How many records did you find? Look at & search the records in the dataframe while you construct your code.
+
+A1:
+I found a total of 66 rows where the vendor name contains "PG" OR "Prince George" and "school."
+
+```{r}
+# find rows where vendor name contains county's school system - search for prince george and school
+
+vendor_name_pg <- cleaned_payments |>
+  filter(str_detect(vendor_name, "PG|PRINCE GEORGE"))
+
+vendor_name_princegeorge_school <- vendor_name_pg |>
+  filter(str_detect(vendor_name, "SCHOOL"))
+
+pg_schools <- vendor_name_princegeorge_school
+
+```
+
+Q2: Using that `pg_schools` dataframe, write code to calculate the total amount of payments to the Prince George's County School system for each fiscal year. Which fiscal year had the largest total amount? Are there any aspects of the results that stand out to you?
+
+A2:
+2021 had the largest total amount of funding going to PG schools. It looks like we're missing data for FY 2016, 2010, 2011, and 2012. It also looks like there was a big jump in funding in 2015, which got scaled back in subsequent years. 2019 was when it started going up again with another big jump in 2021, the first year post-covid where we tried to go back to school but it was a disaster. I'm surprised there wasn't a huge jump in funding in 2020 given the cost of switching to online but maybe that is represented more heavily in 2021 as they were able to free up funding.
+
+```{r}
+funding_to_pgschools <- pg_schools |> 
+  group_by(fiscal_year) |>
+  summarise(total = sum(amount)) |>
+arrange(desc(total))
+
+funding_to_pgschools
+```
+
+Q3. You're interested in examining the vendors paid for capital projects at the University of Maryland. 
+
+Search the payments data to find those payments, then write code to produce a list of each vendor and the total amount it received.
+
+Look carefully at that list - what cleaning will it require to ensure that you have only one row per vendor and zip code? Provide at least three examples of vendor names that are similar and should be combined into one. Describe how you might clean that data so that any nearly identical vendors would look identical - what would you change and how?
+
+A3.
+The vendor names need to be standardized - three examples of names that need to be combined include: 
+a. A MORTON & ASSOC INC and A MORTON AND ASSOCIATES INC
+b. A & I INC and A&I INC and A&I INC.
+c. AEROSOL MONITORING & ANALYSIS INC	and AERSOL MONITORING & ANALYSIS INC
+
+I'm sure there's a better way to do this, but i would change all instances of ASSOC to ASSOCIATES and get rid of any punctuation and change all & to "and" for a start. I assume and hope there is a more strategic way to do this - maybe a find partial dupe function we could pair similar rows with the same zip to?
+
+```{r}
+umd_capitalprojects <- cleaned_payments |> 
+  filter(agency_name == "CAPITAL PROJECTS- UNIVERSITY OF MARYLAND") |>
+  group_by(vendor_name, vendor_zip) |>
+  summarise(total=sum(amount))
+umd_capitalprojects
+```
+
+Q4: You want to understand how much state grant money went to stem cell research projects each fiscal year. 
+
+Search the data to find grants that fit that description. Once you find which columns contain the information you want, your code should standardize the data needed to find just the grants for stem cell research in a single filter. Then create a total amount of money for each fiscal year. Write a sentence summarizing how stem cell research funding has changed over time.
+
+A4:
+The state has significantly reduced the amount of grant money it spends on stem cell research since 2009. Funding dropped by about 50% in 2010, and the state has not dramatically increased grant funds since then. While there was a slight increase in 2011-2013, by 2014 funding was back to less than half of what it had been in 2009. That number has stayed between 6.4 million and 7.8 million dollars through 2022. Funding hit a record low in 2021 at 4.8 million dollars. 
+
+```{r}
+stemcell_grants <- cleaned_grantsloans |> 
+ mutate(description = str_to_lower(description)) |>
+  filter(str_detect(description, "stem cell research grant")) |>
+  group_by(fiscal_year) |>
+  summarise(total=sum(amount)) |>
+  arrange(desc(fiscal_year))
+
+stemcell_grants
+
+```
+
+Q5: Using the Maryland grants and loan data, find records where the zip code is the one where the University of Maryland-College Park is located in and produce a list of grantees from that zip code, along with the total amount they received. Write a paragraph explaining how many grantees are there, what you would need to do to clean the results so that you had one record per grantee and which grantees are most interesting to you?
+
+A5: 
+There are 17 grantees in the 20742 zip code (same as umd). To clean the results I would have to decide how I want to classify different groups within UMD. I think I would probably end up grouping everything at UMD college park together. Since I know they're all in the same zip code, I know they are all actually UMD college park offices/groups. I think I would probably do a case when string detect (i think that's a thing?) and change anything with UMD or University of Maryland in the name to be called University of Maryland College Park.
+
+I'm interested in finding out what HAYSTACK SOLUTIONS INC is and why they're getting so much funding in grants, as they're the second largest recipient in the area after the university and received a significant chunk of money.
+
+```{r}
+umd_zip_grantees <- cleaned_grantsloans |> 
+  filter(zip_code == "20742") |>
+  group_by(grantee) |>
+  summarise(sum(amount))
+umd_zip_grantees
+```
+
