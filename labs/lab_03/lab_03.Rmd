@@ -66,6 +66,7 @@ vendor_name_princegeorge_school <- vendor_name_pg |>
 
 pg_schools <- vendor_name_princegeorge_school
 
+# notes to self - didn't find all the instances, missed board of education and prince geroges public and PG county public. To find more, take the structure of question 2 and plug in most generic filter you can have (e.g. PRINCE, group by vendor name, SCHOOL group by vendor name, COUNTY group by, etc.)
 ```
 
 Q2: Using that `pg_schools` dataframe, write code to calculate the total amount of payments to the Prince George's County School system for each fiscal year. Which fiscal year had the largest total amount? Are there any aspects of the results that stand out to you?
@@ -80,6 +81,8 @@ funding_to_pgschools <- pg_schools |>
 arrange(desc(total))
 
 funding_to_pgschools
+
+# note to self - should have seen that not every year was included and CHECKED THAT to make sure we had captured every instance of PG schools instead of assuming there was just bad data
 ```
 
 Q3. You're interested in examining the vendors paid for capital projects at the University of Maryland. 
