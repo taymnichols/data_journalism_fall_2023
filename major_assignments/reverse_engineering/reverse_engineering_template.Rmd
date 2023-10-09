@@ -1,7 +1,7 @@
 ---
 title: "Reverse Engineering Project"
-author: "Student names here"
-date: "Date here"
+author: "Taylor Joel Shaun & Menna"
+date: "7/7/23"
 output:
   html_document:
     theme: cerulean
@@ -18,14 +18,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction 
 
-In this notebook, we are reverse engineering the story, [STORY NAME](STORY URL)
+In this notebook, we are reverse engineering the story, [Nearly 250 women have been shot by police since 2015](https://www.washingtonpost.com/graphics/2020/investigations/police-shootings-women/)
 
 ## Load libraries
 
 Loading required libraries for this analysis.
 
 ```{r echo=FALSE, message=FALSE}
-
+library(tidyverse)
+library(lubridate)
+library(janitor)
 ```
 
 ## Load and Cleaning Data
