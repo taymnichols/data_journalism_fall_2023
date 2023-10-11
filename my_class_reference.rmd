@@ -117,3 +117,11 @@ need the <- to make the change permanent (make this change then save it)
 Group
 Summarize
 arrange
+
+Notes:
+Convert dates using libridate when you clean your dataset at the beginning
+  - use function 
+
+
+Summarise Function/How to count rows:
+summarize(count = n())
