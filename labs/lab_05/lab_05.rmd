@@ -1,0 +1,118 @@
+---
+title: "lab_05"
+author: "derek willis"
+date: "2023-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+-   Tabula
+
+## Load libraries and establish settings
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse, plus any other packages you will need to clean data and work with dates.
+library(tidyverse)
+library(lubridate)
+library(janitor)
+```
+
+## Get Our PDF
+
+We'll be working with the [911 overdose calls from Baltimore County](https://drive.google.com/file/d/1qkYuojGF_6WKFr5aNQxmewDzcKyOiJFr/view?usp=share_link). You'll want to download it to a place you'll remember (like your Downloads folder, or the labs folder in your repository). The goal is to extract the tables within it, export that to a CSV file, load it into RStudio and ask some questions.
+
+## Extract Data from PDF Using Tabula
+
+Start Tabula, then go to <http://127.0.0.1:8080/> in your browser. Click the "Browse" button and find the PDF file and click "open", and then click the "Import button" in Tabula. This will take a few seconds or longer.
+
+This PDF has a single table spread over multiple pages to extract. We're going to make a single dataframe from this table, exporting it to a CSV file that you will load into R. In Tabula, highlight the table and click the "Preview & Export Extracted Data" button. You may want to play with including or excluding the column headers - YOU SHOULD HAVE FIVE COLUMNS OF DATA.
+
+Save the CSV (it should be called `tabula-Baltimore County; Carey, Samantha log OD.csv` by default) to your lab_05/data folder.
+
+From there, you will need to read in the data, and add or fix headers if necessary. You can choose to include the headers from the PDF in your exported CSV files OR to exclude them and add them when importing. `read_csv` allows us to do this ([and more](https://readr.tidyverse.org/reference/read_delim.html)).
+
+## Load and clean up the data in R
+
+You will need to read in and clean up the data so that it can be used for analysis. By "clean" I mean the column headers should not contain spaces and they should have meaningful names, not "x1" or something similar. How you do that is up to you, but you can use select() with or without the minus sign to include or exclude certain columns. You also can use the `rename` function to, well, rename columns. Importantly, you'll need to ensure that any columns containing a date actually have a date datatype. Our friend `lubridate` can help with this.
+
+```{r}
+baltimore_od_calls <- read_csv("baltimore_od_calls.csv", col_names = FALSE) |> clean_names()
+
+baltimore_od_calls <- baltimore_od_calls |> rename(date = x1, time = x2, case_number = x3, evytp = x4, location = x5,)
+
+baltimore_od_calls <- baltimore_od_calls |> mutate(date=mdy(date))
+
+baltimore_od_calls 
+```
+
+## Answer questions
+
+Q1. Write code to generate the number of calls that occurred on each date. Which date in 2022 had the most overdose calls, and how many? Look at the total number of rows in your result and explore the range of dates - based on your result, do you believe there are any days with no overdose calls at all? Explain why or why not.
+
+A1.
+The most overdose calls occurred on July 14, 2022 and October 04, 2022. There were a total of 23 OD calls on each of those days. There are 329 rows of data, which means that there was about a month and a few days where there were no OD calls. I kind of find that hard to believe though, so I'm guessing our data doesn't start until February.
+
+
+```{r}
+baltimore_od_calls |> group_by(date) |>
+summarise(count=n()) |>
+  arrange(desc(count))
+
+baltimore_od_calls |> filter(date <"2023-01-01" & date >"2021-12-31") |> group_by(date) |>
+summarise(count=n()) |>
+  arrange(desc(date))
+```
+
+Q2. You want to understand if there's a pattern in the day of the week that overdose calls are made. Add a column to your dataframe that displays what day of the week each date represents. You should search for how to do that using lubridate. Then write code to calculate the number of calls for each day of the week, and add a column to that result that calculates the percentage of all calls that occurred on each day of the week (so you want a dataframe with the day of the week, total number of calls and the percentage of calls on that day out of the total number of all calls). Describe your findings to me.
+
+A2.
+Overdose calls are most common on Saturday and Sunday, with Friday and Tuesday both close runners-up. However, the number of calls is fairly well distributed actually. Thursday is the day with the fewest overdoses.
+
+```{r}
+baltimore_od_calls <- baltimore_od_calls |> mutate(weekday = wday(date, label = TRUE, abbr = FALSE))
+
+days_of_week <- baltimore_od_calls |> group_by(weekday) |>
+  summarise(count = n()) |>
+  mutate(percent=count/sum(count)*100)
+```
+
+Q3. Now let's look at locations. Which ones have the most calls? How would you describe them (feel free to search for more information on them)? Is there anything about the structure of the original data that might make you less confident in the counts by location or date?
+
+A3.
+
+So the most common location for OD calls is 4540 Silver Spring Rd. in Perry Hall. It looks like it's a house, currently for sale, in a wooded area behind some trees along the highway. It's also near a park and a high school. My initial guesses are either this house was somewhere a drug dealer or addicts were living with a lot of people coming in and out OR a place where kids from the high school went to party/do drugs.
+
+The second two locations are police stations. This is confusing but I am guessing they had people in custody who OD'd? 
+
+It looks like in the dataset we pulled in there are multiple logs for what appear to be the same event. Same address, date, time, but different EVYTP. There are also logs with the same address and EVYTP but other aspects are different. I think I'd need to find out what EVYTP means, which I didn't find on Google. These factors make me less confident in the count by location and date. 
+
+```{r}
+baltimore_od_calls |> group_by(location) |>
+  summarise(count=n()) |>
+  arrange(desc(count))
+```
+
+Q4. What's the best story idea or question you've seen as a result of the work you've done in this lab?
+
+A4.
+To me, I think the most important story is that there are so many overdose calls, period, and we have the data to show it. I think it would be looking at that change over time. I would like to compare the data for 2023 to the data for 2022 up to whatever point in the year matches with the 2023 data. It looks like we have had 350 OD calls in the first month of 2023 vs 3,762 in the 11 months we have data for in 2022. That seems high to me but I'd be interested to see what the data says.
+
+Also would like to look at this data in conjunction with staffing for 911 callers and response times / deaths but that doesn't really answer your question.
+
+All in all I think the sheer volume of calls and the high frequency of calls at certain locations are probably the most interesting to me - however I would not want to write an article about how the most overdose calls come from 1 house if it's basically just that like one family is really struggling or something like that. 
+
+
+```{r}
+baltimore_od_calls |> mutate(year=year(date)) |>
+  group_by(year) |>
+  summarise(count=n())
+```
+
