@@ -16,6 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 options(scipen=999)
 
 # load your libraries
+library(tidyverse)
+library(janitor)
+library(lubridate)
 
 ```
 
@@ -27,12 +30,37 @@ This week we'll be combining and joining data to make it more useful and to ask 
 
 ```{r}
 # load and combine the call data from those three counties
+setwd("~/data_journalism/data_journalism_fall_2023/labs/lab_06/data")
+
+allegany_calls <- read_csv("allegany_911.csv")
+baltimore_calls <- read_csv("baltimore_911.csv")
+carroll_calls <- read_csv("carroll_911.csv")
+cecil_calls <- read_csv("cecil_911.csv")
+maryland_zcta <- read_csv("maryland_zcta.csv")
+
+glimpse(allegany_calls)
+glimpse(carroll_calls)
+glimpse(cecil_calls)
+
+carroll_calls <- carroll_calls |> clean_names()
+
+carroll_allegany_cecil <- bind_rows(list(allegany_calls, carroll_calls, cecil_calls))
+
+view(carroll_allegany_cecil)
 ```
 
 Then we'll join some demographic data with Baltimore City 911 calls and ask some questions of that. For that, you'll need to load the Baltimore City 911 data and the ZCTA demographic data from the data folder, and join them based on the zip code. Remember, the zip codes in both dataframes must be the same datatype (and should be characters). You should start with your Baltimore City 911 dataframe in creating your join.
 
 ```{r}
 # load and join the Baltimore-related data
+glimpse(baltimore_calls)
+glimpse(maryland_zcta)
+
+baltimore_calls <- baltimore_calls |> mutate(zip_code = as.character(zip_code))
+maryland_zcta <- maryland_zcta |> mutate(ZCTA5N = as.character(ZCTA5N))
+
+baltimore_calls_demographics <- baltimore_calls |> left_join(maryland_zcta, join_by(zip_code == ZCTA5N))
+
 ```
 
 ## Answer questions
@@ -40,8 +68,14 @@ Then we'll join some demographic data with Baltimore City 911 calls and ask some
 Q1. Let's start with our data from Allegany, Cecil and Carroll counties. Write code to generate a dataframe that shows the total number of calls for each county. What's the order of counties from most calls to least?
 
 A1.
+Carroll county had the most calls at 448, followed by Cecil at 438 then Allegany at 418.
 
 ```{r}
+
+carroll_allegany_cecil |> 
+  group_by(county) |>
+  summarise(count = n()) |>
+  arrange(desc(count))
 ```
 
 Q2. In your combined dataframe that you used in A1, add a column for the month of each call, then write code to show the total number of calls per county and month. Are there any outliers or noteworthy results? Describe the general pattern of the results.
@@ -49,26 +83,73 @@ Q2. In your combined dataframe that you used in A1, add a column for the month o
 Then calculate the most calls per county and location. Which location had the most calls - where and what is that location?
 
 A2.
+Overall, it seems like spring/summer tend to be popular months in terms of 911 calls while fall/winter seem to be slower. Allegany and Carroll tend to have higher call volumes especially in those spring and summer months, however Cecil's August calls are a big outlier considering the county has a far lower call volume overall than the other two. Allegany also had very low calls in the winter.
+
+The location with the most calls is a drug and alcohol treatment center in Earleville in Cecil County. Looks like some locations are logged as 2 separate records but they're one place.
+
 
 ```{r}
+carroll_allegany_cecil <- carroll_allegany_cecil |> mutate(month=month(date, label = TRUE))
+carroll_allegany_cecil |> group_by(county, month) |>
+  summarise(count = n()) |>
+  arrange(desc(count))
+
+carroll_allegany_cecil |> group_by(county, location) |>
+  summarise(count = n()) |>
+  arrange(desc(count))
+
 ```
 
 Q3. Let's turn to the Baltimore City data. You're interested in exploring calls in zip codes with a high percentage of children under 18. Write code to isolate calls in zip codes where the percentage of under 18 population is at least 75% and then show the zip code and population and how many calls occurred in each of those zip codes.
 
 Where are those zip codes in the city?
+These zip codes are all in the central inner part of the city, basically the heart of Baltimore. 
+
+```{r}
+baltimore_calls_demographics |> 
+  filter(PCT_UNDER_18 >=75) |> 
+  group_by(zip_code, POPULATION) |>
+  summarise(count=n()) |>
+  arrange(desc(count)) 
+  
+```
+
 
 Add a column to your code that calculates the number of calls per 1,000 people for those zip codes. To calculate a per capita rate, you might find this short guide handy: [https://observablehq.com/\@palewire/per-capita-calculator](https://observablehq.com/@palewire/per-capita-calculator){.uri}.
 
 Which zip code has the highest rate of calls per 1,000 people? Find the neighborhoods in that zip code that are listed in the data - you can use group_by or distinct to do this. What are some of those neighborhoods, and what else can you tell me about the population there?
 
 A3.
+The zip with the most calls per capita is the same as the one with the most calls overall. Penn North is the neighborhood with the most 911 calls. I found a weird article from Fox News Baltimore about how the neighborhood struggles with a lot of crime, where no sources would go on the record with their name. There's also a drug and alcohol recovery in the neighborhood. There's a fairly sizable population in this neighborhood (37k people) and it's one of the blackest neighborhoods in Baltimore. Most people who live here rent (70%) and 81% of residents are under 18. The median age is 34 years old.
+
 
 ```{r}
+baltimore_calls_demographics |> 
+  filter(PCT_UNDER_18 >=75) |> 
+  group_by(zip_code, POPULATION) |>
+  summarise(count=n()) |>
+  mutate(calls_per_1k = count/POPULATION*1000) |>
+  arrange(desc(calls_per_1k))
+
+baltimore_zips <- baltimore_calls_demographics |> group_by(zip_code, POPULATION, PCT_WHITE_NON_HISPANIC, PCT_BLACK_NON_HISPANIC, PCT_HISPANIC, PCT_HOMEOWNER, PCT_UNDER_18, PCT_RENT, PCT_POP_65) |>
+  summarise(count = n()) |>
+  arrange(desc(PCT_BLACK_NON_HISPANIC))
 ```
 
 Q4. Choose your own adventure: I want you to come up with a question you could ask of the Baltimore City data that combines both the calls and the demographic information. You must use both demographics and the overdose call data in your work.
 
-A4:
+A4: I want to know if there's a relationship between homeownership and 911 overdose calls. Looks like there is a fairly strong correlation between the two.
 
 ```{r}
+baltimore_homeowner_calls_percapita <- baltimore_calls_demographics |> 
+  group_by(zip_code, POPULATION, PCT_HOMEOWNER) |>
+  summarise(count=n()) |>
+  mutate(calls_per_1k = count/POPULATION*1000) |>
+  arrange(desc(calls_per_1k))
+
+baltimore_homeowner_calls_percapita |> group_by(zip_code, PCT_HOMEOWNER, calls_per_1k) |> 
+  summarise(count=n()) |>
+  arrange(PCT_HOMEOWNER)
+
+
 ```
