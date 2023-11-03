@@ -1,0 +1,130 @@
+---
+title: "lab_07"
+author: "taylor nichols"
+date: "2023-11-1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+-   A Census API key
+
+## Load libraries and establish settings
+
+You'll need to load two packages for this: the tidyverse and tidycensus.
+
+**Task** load these two packages
+
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# Load the tidyverse.
+library(tidyverse)
+library(tidycensus)
+```
+
+## Setup Census API
+
+You'll need your Census API Key:
+
+**Task** set your API Key if you haven't already. You won't need to install or overwrite it.
+
+```{r echo=FALSE}
+```
+
+## Load and view ACS variables
+
+You'll also need to load the list of American Community Survey variables from the 2021 5-year estimates so you can identify the codes you need:
+
+**Task** load the variables from the 2021 5-year ACS (which is called "acs5") and save them to a dataframe
+
+```{r}
+acs5_variables <- load_variables(2021, "acs5", cache = TRUE)
+
+```
+
+## Answer questions
+
+**Q1** What is the Maryland jurisdiction with the lowest median age, according to the ACS 2021 5-year estimates? You will need to find the variable for median age first. 
+**A1** 
+It looks like Baltimore City has the lowest median age at 35.7 years old, but Wicomico County has a wide enough margin of error that it could actually be Wicomico County.
+```{r}
+median_age_md <- get_acs(geography = "county",
+              variables = c(median_age = "B01002_001"),
+              state = "MD",
+              year = 2021)
+median_age_md |> arrange(estimate)
+```
+
+**Q2** Which Maryland counties have a median age of at least 50? You can use the dataframe you just made to answer this, but you must write code to display only those counties with a median age of at least 50. 
+**A2** 
+Only Talbot and Worcester counties both have a median age of at least 50 years old.
+
+```{r}
+median_age_md |> filter(estimate >= 50)
+```
+
+**Q3** We're interested in knowing more about Montgomery County zip codes where overdose calls are coming from and the demographic characteristics they possess. In particular, we want to calculate a rate of calls per 1,000 population. To do this, you'll need to:
+
+1. Load the Montgomery County 911 overdose calls data.
+2. Create a new dataframe with the total number of calls for each zip code.
+3. Find the ACS variable pertaining to the total 18 and up population (there are several choices here; you want the simplest one).
+4. Get from the ACS data from all Maryland zip codes using that variable.
+5. Join the ACS data to the Montgomery County zip code totals dataframe and rename the estimate column to a meaningful name you've given the ACS variable.
+6. Add a column to the joined dataframe that calculates a rate of calls per 1,000 population.
+
+Which zip code has the highest rate of calls? Which has the lowest?
+
+**A3** 
+Zip code 20877 has the highest rate of calls per 1000 people at 1.77 calls. This zip belongs to Gaithersburg, MD, Rockville, MD, Montgomery Village, MD, Washington Grove, MD and Redland, MD. Zip code 20707 has the lowest rate at .036 calls per 1k. The cities included in this zip are Laurel, Burtonsville, West Laurel, South Laurel and Carriage Hill.
+
+```{r}
+montgomery_overdose_calls <- read_csv("data/montgomery_2022_overdoses.csv")
+montgomery_overdose_calls <- montgomery_overdose_calls |> mutate(zip = as.character(zip))
+
+montgomery_overdose_calls_zip <- montgomery_overdose_calls |> 
+  group_by(zip) |>
+  summarise(total_calls = n())
+
+adults_by_zip <- get_acs(geography = "zip code tabulation area",
+              variables = c(number_adults = "B09021_001"),
+              year = 2021)
+
+montgomery_overdose_calls_demographics <- montgomery_overdose_calls_zip |> inner_join(adults_by_zip, join_by("zip"=="GEOID"))
+ 
+montgomery_overdose_calls_demographics <- montgomery_overdose_calls_demographics |> 
+  rename(adults_over_18=estimate) |> 
+  select(-NAME) |> 
+  mutate(calls_per_1k = total_calls/adults_over_18*1000) |>
+  arrange(desc(calls_per_1k))
+```
+
+**Q4** Using [CensusReporter.org](https://censusreporter.org/), examine the zip codes with the highest and lowest rates and compare and contrast their demographic profiles. Is there a story here?
+
+**A4** 
+The zip code with the highest overdose calls is home to a high number of Hispanic people and families, has a median household income of 77k per year, a poverty rate of 15%, and a median home price of 395k. Comparatively, the zip code with the lowest calls is predominantly Black, has a lower poverty rate, a median household income of 91k, and lower home prices. 
+
+So essentially, the high call rate zipcode is poorer and more heavily Latino. People make less money there, are less likely to be highly educated, and typically pay more in rent. However, some interesting side notes: women in the high-call rate zip code are more likely to have kids in their early 20s or late 30s, whereas women in the low call-rate zip are more likely to have kids in their early 30s and less likely to be married.
+
+What's interesting to me and what I think would be worth looking into is that the high call rate zip has a higher poverty rate, more households making less than 50k per year, and more expensive houses. The low call rate zip has higher incomes, lower rents, more single people, and lower poverty rates. I'd be interested to see how other zip codes compare in these demographics.
+
+
+**Q5** Go back to your joined dataframe from Q3 and add two more columns representing the minimum and maximum populations based on the estimate and margin of error, then calculate per capita rates for each. Do you get the same two zip codes for the highest and lowest as you did before? Does that give you more or less confidence in your answers to Q3?
+
+**A5**
+So I got the same zip codes using the max. Using the min, 20860 became the top zip code for OD calls. While this does give me pause, it only had 2 total calls and a big margin of error with a small population. Comparatively, the original top zip code has 50 calls and a much smaller margin of error. I don't feel overall less confident about it because of this.
+
+The zip code 20889 with 0 people and a margin of error of 13 is giving me pause. I looked it up on google maps and people definitely live there. It's a whole residential cul-de-sac. There's literally more than 13 houses. So something is up with the data there from ACS. It makes me more confident in my answer to Q3, but I am suspicious about this cul-de-sac situation. 
+
+```{r}
+montgomery_overdose_calls_demographics <- montgomery_overdose_calls_demographics |>
+  mutate(pop_min = adults_over_18-moe, pop_max = adults_over_18+moe, calls_per_1k_max = total_calls/pop_max*1000, calls_per_1k_min = total_calls/pop_min*1000)
+
+montgomery_overdose_calls_demographics
+```
+
