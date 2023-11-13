@@ -150,6 +150,7 @@ ggplot(pg_calls_zip_income, aes(x=estimate, y=total_calls)) +
   geom_point() +
   labs(
     title="Majority of 911 Overdose Calls Come From Middle-Income Zip Codes",
+    x = "Median Income",
     y = "Total Calls",
     caption = "Source: Prince George's County Emergency Medical Services and Census Data") +
   geom_text(aes(x=estimate-5000, 
