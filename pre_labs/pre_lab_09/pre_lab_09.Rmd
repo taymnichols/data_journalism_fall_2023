@@ -106,10 +106,9 @@ In order to make a map, we need to be able to tell Datawrapper that a certain co
 **Task** Write code to add columns showing the total number of votes for each county and the percentage of votes received by Wes Moore in each county (you did this in Lab 9!), then replace the CSV file in the data folder with it.
 
 ```{r}
-
 # calculate the total number of votes and Moore's percentage, saving it back to the md_gov_county dataframe
 md_gov_county <- md_gov_county |> clean_names() |>
-  mutate(total_votes = cox + moore + lashar + wallace + harding + write_ins) |>
+  mutate(total_votes = cox + moore + lashar + wallace + harding + sefcik + write_ins) |>
   mutate(pct_moore = moore/total_votes*100)
 write_csv(md_gov_county, "data/md_gov_county.csv")
 ```
