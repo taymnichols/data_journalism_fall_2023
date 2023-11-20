@@ -40,16 +40,23 @@ Your chart MUST: \* Have a title, description and source that tells readers abou
 \* Describe your thought process below - why you chose to make the chart you did - and add the URL of your chart.
 
 **A1.**
-
+Chart url: https://datawrapper.dwcdn.net/PNP9k/1/
+I initially chose a stacked bar chart, but switched to a bar in bar chart because it was more succinct and better showed how significant the losses were in every county. I think it was the best option to easily give a visual on how each person did in the same county. My only complaint is I would like to be able to add data labels to each chart because it's so long it's hard to keep the key in your sight while looking at the top of the chart and vice versa.
 ```{r}
 md_gov_county <- read_csv("data/md_gov_county.csv") |> clean_names()
 md_gov_county_18 <- read_csv("data/md_gov_county_18.csv") |> clean_names()
 
-md_gov_county_22_18 <- md_gov_county |> left_join(md_gov_county_18, by=c("county","geoid")) 
+md_gov_county_22_18 <- md_gov_county |> left_join(md_gov_county_18, by=c("geoid")) 
 md_gov_county_22_18 <- md_gov_county_22_18 |> 
-  rename(write_ins_22 = write_ins.x, write_ins18 = write_ins.y) |>
-  mutate(total_22 = cox + moore + lashar + wallace + harding + sefcik)
-  
+  rename(write_ins_22 = write_ins.x, write_ins_18 = write_ins.y) |>
+   mutate(total_votes_22 = cox + moore + lashar + wallace + harding + sefcik + write_ins_22) |>
+  mutate(pct_cox = cox/total_votes_22*100) |>
+  mutate(total_votes_18 = hogan + jealous + quinn + schlakman + write_ins_18) |>
+  mutate(pct_hogan = hogan/total_votes_18*100) |>
+  select(-county.y) |>
+  rename(county = county.x)
+
+write_csv(md_gov_county_22_18, "data/md_gov_county_22_18.csv")
 ```
 
 **Q2.** You're interested in seeing how the methods of voting have changed in Maryland since 2018. Using the `md_votes_by_type.csv` that has data from the top of the ticket (governor in 2018 and 2022, president in 2020), make a chart showing the percentage of votes cast in each category - early voting, election day and mail - over the three years. You'll need to make those percentages in R and then export the CSV using `write_csv`, then make the chart in Datawrapper. Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
@@ -59,8 +66,15 @@ HINT: In Datawrapper's "Check and Describe" tab, you can click on a column to ge
 What do you think the story here is? Put the answer below along with the URL of your chart.
 
 **A2.**
+Link to chart: https://datawrapper.dwcdn.net/Jxgfh/1/
+
+I think the most interesting aspects of this chart are that there was a huge spike in mail-in voting in the 2020 election, and mail-in ballots did become more popular than they were pre-pandemic even in 2022. However, by 2022 most people had returned to voting in person. Basically mail-in voting got popular during covid for obvious reasons and some people opted to continue voting by mail the next election, but mostly people returned to voting in person (which makes zero sense to me why would you want to go in person when you can just mail your ballot in??? It's SO MUCH EASIER).
 
 ```{r}
+md_votes_by_type <- read_csv("data/md_votes_by_type.csv") |> clean_names() |>
+  mutate(pct_early = early/total*100, pct_election_day = election_day/total*100, pct_mail = mail/total*100)
+
+write_csv(md_votes_by_type, "data/votes_by_type_md_percents.csv")
 ```
 
 **Q3.** You want to know more about the geography of 911 overdose calls in Montgomery County, Maryland, in 2022. To do that, you'll make a choropleth map in Datawrapper. You will need to:
@@ -76,6 +90,14 @@ What do you think the story here is? Put the answer below along with the URL of 
 What do you think the story here is, and what would you want to know more about? Put the answer below along with the URL of your map.
 
 **A3.**
+Map url: https://datawrapper.dwcdn.net/zP7x6/1/
+I think the story here is that there are a lot of OD calls coming from the more central areas of Montgomery County. However it's really hard to know if this is an interesting story without the population per zip code data. Silver Spring, Germantown and Gaithersburg aren't super surprising given their size, but I think Rockville is smaller and more notable on this list as a result.
 
 ```{r}
+moco_od_calls_22 <- read_csv("data/montgomery_2022_overdoses.csv")
+moco_od_calls_zip <- moco_od_calls_22 |> group_by(zip) |>
+  summarise(calls_per_zip = n()) |>
+  mutate(percent_total = calls_per_zip/659*100) 
+
+write_csv(moco_od_calls_zip, "data/moco_od_calls_zip_22.csv")
 ```
