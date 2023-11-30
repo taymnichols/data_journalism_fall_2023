@@ -74,9 +74,16 @@ Looks like what I believe is Talbot County experienced a significantly high numb
 
 ```{r}
 county_outages_march23 <- read_csv("data/county_outages_march2023.csv")
-md_counties <- counties |>
-  filter(statefp == "24")
 
+md_counties <- counties |>
+  filter(statefp == "24") |> 
+  select(-county) |>
+  rename(county = namelsad) |>
+   mutate(county = str_to_title(str_remove_all(county,"County"))) |>
+  mutate(county = str_trim(county,side="both"))
+```
+
+```{r}
 county_outages_march23 <- county_outages_march23 |>
   mutate(outages_per_10k = outage_customers/total_customers*10000)
 
